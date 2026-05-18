@@ -11,7 +11,9 @@ namespace Build_a_Web_API_for_an_E_Commorace
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
             //connection t database
-            options.UseSqlServer(" Data Source=(localdb)\\MSSQLLOCALDB; Initial Catalog=Ecommerace; Integrated Security=true; TrustServerCertificate=True ");
+            options.UseSqlServer(
+    @"Server=(localdb)\MSSQLLocalDB;Database=ECommerceDB;Trusted_Connection=True;"
+);
         }
 
 
