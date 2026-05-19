@@ -258,7 +258,7 @@ namespace Build_a_Web_API_for_an_E_Commorace
                 " , Overall Rating:" + Pp.OverallRating
             );
         }
-        static public  void PlaceOrder()
+        static public void PlaceOrder()
         {
             Console.WriteLine("Enter Order name:");
             string orderName = Console.ReadLine();
@@ -281,6 +281,13 @@ namespace Build_a_Web_API_for_an_E_Commorace
                 return;
             }
 
+            // Check if price is null
+            if (product.Price == null)
+            {
+                Console.WriteLine("Product price is not available!");
+                return;
+            }
+
             // Check stock
             if (product.Stock < quantity)
             {
@@ -289,12 +296,10 @@ namespace Build_a_Web_API_for_an_E_Commorace
             }
 
             // Calculate total amount
-            decimal totalAmount = (product.Price ?? 0) * quantity;
+            decimal totalAmount = product.Price.Value * quantity;
 
             // Reduce stock
             product.Stock -= quantity;
-
-            db.Products.Update(product);
 
             // Create order
             Order order = new Order
@@ -303,14 +308,14 @@ namespace Build_a_Web_API_for_an_E_Commorace
                 orderDate = DateTime.Now,
 
                 OrderProducts = new List<OrderProducts>
-                {
-                    new OrderProducts
-                    {
-                        ProductId = productId,
-                        Quantity = quantity,
-                        Price = product.Price.Value
-                    }
-                }
+        {
+            new OrderProducts
+            {
+                ProductId = productId,
+                Quantity = quantity,
+                Price = product.Price.Value
+            }
+        }
             };
 
             db.Orders.Add(order);
@@ -320,7 +325,7 @@ namespace Build_a_Web_API_for_an_E_Commorace
             Console.WriteLine("Order placed successfully!");
             Console.WriteLine("Total Amount: " + totalAmount);
         }
-        static  public void GetUserOrders()
+        static public void GetUserOrders()
         {
             // Check authentication
             if (loggedInUser == null)
@@ -352,7 +357,8 @@ namespace Build_a_Web_API_for_an_E_Commorace
                 );
             }
         }
-        static  public void GetOrderById()
+
+        static public void GetOrderById()
         {
             // Check authentication
             if (loggedInUser == null)
@@ -362,7 +368,14 @@ namespace Build_a_Web_API_for_an_E_Commorace
             }
 
             Console.WriteLine("Enter Order Id:");
-            int order_ids = int.Parse(Console.ReadLine());
+
+            int order_ids;
+
+            if (!int.TryParse(Console.ReadLine(), out order_ids))
+            {
+                Console.WriteLine("Invalid Order Id!");
+                return;
+            }
 
             // Get ONLY logged-in user's order
             Order ord = db.Orders
@@ -378,14 +391,16 @@ namespace Build_a_Web_API_for_an_E_Commorace
 
             Console.WriteLine("Order details...");
 
+            decimal total = ord.TotalAmount;
+
             Console.WriteLine(
                 "User Id: " + ord.UserId +
                 " , Order Id: " + ord.order_Id +
                 " , Order Date: " + ord.orderDate +
-                " , Total Amount: " + ord.TotalAmount
+                " , Total Amount: " + total
             );
         }
-        static public  void AddProductReview()
+        static public void AddProductReview()
         {
             // Check authentication
             if (loggedInUser == null)
@@ -395,10 +410,31 @@ namespace Build_a_Web_API_for_an_E_Commorace
             }
 
             Console.WriteLine("Enter Product Id:");
-            int productId = int.Parse(Console.ReadLine());
+
+            int productId;
+
+            if (!int.TryParse(Console.ReadLine(), out productId))
+            {
+                Console.WriteLine("Invalid Product Id!");
+                return;
+            }
 
             Console.WriteLine("Enter Rating:");
-            int rating = int.Parse(Console.ReadLine());
+
+            int rating;
+
+            if (!int.TryParse(Console.ReadLine(), out rating))
+            {
+                Console.WriteLine("Invalid Rating!");
+                return;
+            }
+
+            // Validate rating
+            if (rating < 1 || rating > 5)
+            {
+                Console.WriteLine("Rating must be between 1 and 5.");
+                return;
+            }
 
             Console.WriteLine("Enter Comment:");
             string comment = Console.ReadLine();
@@ -412,10 +448,11 @@ namespace Build_a_Web_API_for_an_E_Commorace
                 return;
             }
 
-            // Check if user previously ordered this product
+            // Check if user purchased product
             bool hasOrdered = db.orderProducts
                 .Any(op =>
                     op.ProductId == productId &&
+                    op.Order != null &&
                     op.Order.UserId == loggedInUser.Id);
 
             if (!hasOrdered)
@@ -435,22 +472,60 @@ namespace Build_a_Web_API_for_an_E_Commorace
             };
 
             db.Reviews.Add(review);
+
             db.SaveChanges();
 
             Console.WriteLine("Review Added Successfully!");
         }
-        static  public void GetProductReviews()
+        static public void GetProductReviews()
         {
             Console.WriteLine("Enter Product Id:");
-            int productId2 = int.Parse(Console.ReadLine());
+
+            int productId2;
+
+            if (!int.TryParse(Console.ReadLine(), out productId2))
+            {
+                Console.WriteLine("Invalid Product Id!");
+                return;
+            }
 
             Console.WriteLine("Enter Page Number:");
-            int pageNumber = int.Parse(Console.ReadLine());
+
+            int pageNumber;
+
+            if (!int.TryParse(Console.ReadLine(), out pageNumber))
+            {
+                Console.WriteLine("Invalid Page Number!");
+                return;
+            }
 
             Console.WriteLine("Enter Page Size:");
-            int pageSize = int.Parse(Console.ReadLine());
 
-            // Get reviews for specific product with pagination
+            int pageSize;
+
+            if (!int.TryParse(Console.ReadLine(), out pageSize))
+            {
+                Console.WriteLine("Invalid Page Size!");
+                return;
+            }
+
+            // Validate pagination values
+            if (pageNumber <= 0 || pageSize <= 0)
+            {
+                Console.WriteLine("Page Number and Page Size must be greater than 0.");
+                return;
+            }
+
+            // Check if product exists
+            Product product = db.Products.Find(productId2);
+
+            if (product == null)
+            {
+                Console.WriteLine("Product not found!");
+                return;
+            }
+
+            // Get reviews with pagination
             List<Review> reviews = db.Reviews
                 .Where(r => r.ProductId == productId2)
                 .Skip((pageNumber - 1) * pageSize)
@@ -477,12 +552,19 @@ namespace Build_a_Web_API_for_an_E_Commorace
 
             Console.WriteLine("Reviews displayed successfully!");
         }
-        static  public void ManageReview()
+        static public void ManageReview()
         {
             Console.WriteLine("Enter option 1 or 2");
             Console.WriteLine("1.Update Review ");
             Console.WriteLine("2.Delete Review");
-            int option = int.Parse(Console.ReadLine());
+
+            int option;
+
+            if (!int.TryParse(Console.ReadLine(), out option))
+            {
+                Console.WriteLine("Invalid option!");
+                return;
+            }
 
             if (option == 1)
             {
@@ -494,7 +576,14 @@ namespace Build_a_Web_API_for_an_E_Commorace
                 }
 
                 Console.WriteLine("Enter Review Id:");
-                int reviewId = int.Parse(Console.ReadLine());
+
+                int reviewId;
+
+                if (!int.TryParse(Console.ReadLine(), out reviewId))
+                {
+                    Console.WriteLine("Invalid Review Id!");
+                    return;
+                }
 
                 // Find review created by logged-in user
                 Review review2 = db.Reviews
@@ -509,7 +598,21 @@ namespace Build_a_Web_API_for_an_E_Commorace
                 }
 
                 Console.WriteLine("Enter New Rating:");
-                int newRating = int.Parse(Console.ReadLine());
+
+                int newRating;
+
+                if (!int.TryParse(Console.ReadLine(), out newRating))
+                {
+                    Console.WriteLine("Invalid Rating!");
+                    return;
+                }
+
+                // Validate rating
+                if (newRating < 1 || newRating > 5)
+                {
+                    Console.WriteLine("Rating must be between 1 and 5.");
+                    return;
+                }
 
                 Console.WriteLine("Enter New Comment:");
                 string newComment = Console.ReadLine();
@@ -520,10 +623,10 @@ namespace Build_a_Web_API_for_an_E_Commorace
                 review2.ReviewDate = DateTime.Now;
 
                 db.Reviews.Update(review2);
+
                 db.SaveChanges();
 
                 Console.WriteLine("Review updated successfully!");
-                Console.WriteLine("Update review...");
             }
             else if (option == 2)
             {
@@ -535,7 +638,14 @@ namespace Build_a_Web_API_for_an_E_Commorace
                 }
 
                 Console.WriteLine("Enter Review Id:");
-                int reviewId2 = int.Parse(Console.ReadLine());
+
+                int reviewId2;
+
+                if (!int.TryParse(Console.ReadLine(), out reviewId2))
+                {
+                    Console.WriteLine("Invalid Review Id!");
+                    return;
+                }
 
                 // Find review created by logged-in user
                 Review review3 = db.Reviews
@@ -551,9 +661,14 @@ namespace Build_a_Web_API_for_an_E_Commorace
 
                 // Delete review
                 db.Reviews.Remove(review3);
+
                 db.SaveChanges();
 
                 Console.WriteLine("Review deleted successfully!");
+            }
+            else
+            {
+                Console.WriteLine("Invalid option!");
             }
         }
         static  public void LoginNewUser()
