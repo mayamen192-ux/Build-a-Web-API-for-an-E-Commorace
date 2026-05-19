@@ -25,6 +25,8 @@ namespace Build_a_Web_API_for_an_E_Commorace.Models
         public string phone { get; set; }
         [Required]
         public string role { get; set; }
+        public bool IsActive { get; set; } = false;
+
         [Required]
         public DateTime  createdAt{ get; set; }=DateTime.Now;
 

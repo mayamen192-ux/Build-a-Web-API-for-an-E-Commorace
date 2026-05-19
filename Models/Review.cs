@@ -27,7 +27,7 @@ namespace Build_a_Web_API_for_an_E_Commorace.Models
         [Range(1, 5,
             ErrorMessage = "Rating must be between 1 and 5")]
         public int Rating { get; set; }
-
+ 
         public string? Comment { get; set; }
 
         public DateTime ReviewDate { get; set; }

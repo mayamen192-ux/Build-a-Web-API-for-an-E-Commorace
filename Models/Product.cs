@@ -23,7 +23,9 @@ namespace Build_a_Web_API_for_an_E_Commorace.Models
 
         [Required]
         [Range(0.01, double.MaxValue)]
-        public decimal? Price { get; set; }
+
+        
+        public decimal  Price { get; set; }
 
         [Required]
         [Range(0, int.MaxValue)]

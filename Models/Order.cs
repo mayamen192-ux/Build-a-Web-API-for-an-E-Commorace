@@ -21,17 +21,9 @@ namespace Build_a_Web_API_for_an_E_Commorace.Models
         public ICollection<OrderProducts> OrderProducts { get; set; } = new List<OrderProducts>();
 
         // Calculated Property (Not stored in database)
-        [NotMapped]
-        public decimal TotalAmount
-        {
-            get
-            {
-                if (OrderProducts == null || !OrderProducts.Any())
-                    return 0;
-
-                return OrderProducts.Sum(item => item.Quantity * item.Price);
-            }
-        }
+        [Required]
+        public decimal TotalAmount { get; set; }
+        
      
        
 
